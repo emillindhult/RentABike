@@ -13,6 +13,59 @@ internal sealed class BikeManager
 
     public void ListBikes()
     {
+        string? userInput;
+
+        while (true)
+        {
+            RenderBikes();
+
+            Console.WriteLine();
+            Console.WriteLine("0. Back");
+            Console.WriteLine();
+
+            Console.Write("-> ");
+
+            userInput = Console.ReadLine();
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            RenderSelectedBike(userInput);
+        }
+    }
+
+    private void RenderSelectedBike(string? input)
+    {
+        if (!int.TryParse(input, out int index) || index < 1 || index > _bikes.Count)
+        {
+            return;
+        }
+
+        BaseBike bike = _bikes[index - 1];
+        string type = bike is ElectricBike ? "Electric Bike" : "Bike";
+        string battery = bike is ElectricBike electricBike
+            ? $"{electricBike.Battery}%"
+            : "N/A";
+
+        Console.Clear();
+        Console.WriteLine("+----------------------------------------+");
+        Console.WriteLine($"| Bike #{index} Details".PadRight(41) + "|");
+        Console.WriteLine("+----------------------------------------+");
+        Console.WriteLine($"| Type       : {type,-26}|");
+        Console.WriteLine($"| Price/hour : {bike.PricePerHour + ":-",-26}|");
+        Console.WriteLine($"| Status     : {(bike.IsFree ? "Available" : "Rented"),-26}|");
+        Console.WriteLine($"| Battery    : {battery,-26}|");
+
+        Console.WriteLine("+----------------------------------------+");
+        Console.WriteLine();
+        Console.Write("Press any key to return to the bike list...");
+        Console.ReadKey(true);
+    }
+
+    private void RenderBikes()
+    {
         Console.Clear();
         Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
             "No.", "Type", "Price/hour", "Status", "Battery");
@@ -33,10 +86,6 @@ internal sealed class BikeManager
                 bike.IsFree ? "Available" : "Rented",
                 battery);
         }
-
-        Console.WriteLine();
-        Console.Write("Press any key to continue...");
-        Console.ReadKey();
     }
 
     public bool RentBike()
