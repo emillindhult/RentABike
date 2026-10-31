@@ -17,12 +17,11 @@ internal sealed class BikeManager
 
         while (true)
         {
+            Console.Clear();
             RenderBikes();
-
             Console.WriteLine();
             Console.WriteLine("0. Back");
             Console.WriteLine();
-
             Console.Write("-> ");
 
             userInput = Console.ReadLine();
@@ -65,7 +64,7 @@ internal sealed class BikeManager
 
     private void RenderBikes()
     {
-        Console.Clear();
+        Console.WriteLine(new string('-', 55));
         Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
             "No.", "Type", "Price/hour", "Status", "Battery");
         Console.WriteLine(new string('-', 55));
@@ -87,9 +86,46 @@ internal sealed class BikeManager
         }
     }
 
-    public bool RentBike()
+    public void RentBike()
     {
-        throw new NotImplementedException();
+        string? userInput;
+
+        while (true)
+        {
+            Console.WriteLine("Select a bike to rent out");
+            RenderBikes();
+            Console.WriteLine();
+            Console.WriteLine("0. Back");
+            Console.WriteLine();
+            Console.Write("-> ");
+
+            userInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            if (!int.TryParse(userInput, out int index))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            var bike = _bikes[index - 1];
+            var battery = bike is ElectricBike electricBike ? electricBike.Battery : -1;
+
+        }
     }
 
     public void ReturnBike()
@@ -98,6 +134,11 @@ internal sealed class BikeManager
     }
 
     public void ChargeBike()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void RenderCustomers()
     {
         throw new NotImplementedException();
     }

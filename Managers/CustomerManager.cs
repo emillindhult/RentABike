@@ -58,7 +58,7 @@ internal sealed class CustomerManager
         {
             Console.Clear();
             Console.WriteLine("Member (y/n)");
-            Console.Write("-> ");
+                Console.Write("-> ");
 
             string? isMemberInput = Console.ReadLine();
 

@@ -11,7 +11,7 @@ internal sealed class App
     {
         _customerManager = new CustomerManager();
         _bikeManager = new BikeManager();
-        Console.CursorVisible = false;
+        Console.CursorVisible = true;
     }
 
     public void Run()
