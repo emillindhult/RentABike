@@ -57,7 +57,6 @@ internal sealed class BikeManager
         Console.WriteLine($"| Price/hour : {bike.PricePerHour + ":-",-26}|");
         Console.WriteLine($"| Status     : {(bike.IsFree ? "Available" : "Rented"),-26}|");
         Console.WriteLine($"| Battery    : {battery,-26}|");
-
         Console.WriteLine("+----------------------------------------+");
         Console.WriteLine();
         Console.Write("Press any key to return to the bike list...");

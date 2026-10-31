@@ -52,12 +52,16 @@ internal sealed class App
                     ListVehicles();
                     break;
                 case "2":
+                    RegisterCustomer();
                     break;
                 case "3":
+                    RentOut();
                     break;
                 case "4":
+                    ReturnBike();
                     break;
                 case "5":
+                    ChargeBike();
                     break;
                 case "0":
                     Environment.Exit(0);
@@ -66,8 +70,28 @@ internal sealed class App
         }
     }
 
+    private void ChargeBike()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void ReturnBike()
+    {
+        throw new NotImplementedException();
+    }
+
     private void ListVehicles()
     {
         _bikeManager.ListBikes();
+    }
+
+    private void RegisterCustomer()
+    {
+        _customerManager.RegisterCustomer();
+    }
+
+    private void RentOut()
+    {
+        _bikeManager.RentBike();
     }
 }
