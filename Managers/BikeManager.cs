@@ -11,7 +11,7 @@ internal sealed class BikeManager
 
     public BikeManager(CustomerManager customerManager)
     {
-        _bikes = SeedData.Seed(_bikes);
+        _bikes = SeedData.SeedBikes(_bikes);
         _customerManager = customerManager;
     }
 
@@ -119,7 +119,7 @@ internal sealed class BikeManager
                 return;
             }
 
-            if (!int.TryParse(userInput, out int index))
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > _bikes.Count)
             {
                 Console.WriteLine();
                 Console.WriteLine("Invalid input");
@@ -128,38 +128,32 @@ internal sealed class BikeManager
             }
 
             var bike = _bikes[index - 1];
-            var battery = bike is ElectricBike electricBike ? electricBike.Battery : -1;
 
-            if (battery < 0)
-            {
-                RentOrdinaryBike((Bike)bike);
-                continue;
-            }
-
-            if (battery <= 25)
+            if (!bike.IsFree)
             {
                 Console.WriteLine();
-                Console.WriteLine("The bike needs charging.");
+                Console.WriteLine("The bike is not available.");
                 Thread.Sleep(1000);
-                continue;
+                return;
             }
 
-            RentElectricBike();
-
+            if (bike is Bike ordinaryBike)
+            {
+                RentOrdinaryBike(ordinaryBike);
+            }
+            else if (bike is ElectricBike electricBike)
+            {
+                RentElectricBike(electricBike);
+            }
         }
     }
 
-    private void RentElectricBike()
+    private void RentElectricBike(ElectricBike bike)
     {
-        throw new NotImplementedException();
-    }
-
-    private void RentOrdinaryBike(Bike bike)
-    {
-        if (!bike.IsFree)
+        if (bike.Battery <= 30)
         {
             Console.WriteLine();
-            Console.WriteLine("The bike is not available.");
+            Console.WriteLine("The bike needs to charge.");
             Thread.Sleep(1000);
             return;
         }
@@ -189,7 +183,95 @@ internal sealed class BikeManager
                 return;
             }
 
-            if (!int.TryParse(userInput, out int index))
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > _customerManager.Customers.Count)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            var customer = _customerManager.Customers[index - 1];
+
+            if (customer.Age < 18)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Customer need to be 18 or older.");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("How long to rent out");
+                Console.Write("-> ");
+
+                string? lengthInput = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(lengthInput))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Invalid input");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                if (!int.TryParse(lengthInput, out int length))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Invalid input");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                if (length * 10 > bike.Battery)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("The bike needs to charge before renting out that long.");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                _rentedBikes.Add(new RentedBike(customer.Id, bike.Id, BikeType.ElectricBike, length));
+                bike.SetIsFree(false);
+
+                Console.WriteLine();
+                Console.WriteLine("Bike successfully rented out.");
+                Thread.Sleep(1000);
+                return;
+            }
+        }
+    }
+
+    private void RentOrdinaryBike(Bike bike)
+    {
+        while (true)
+        {
+            Console.Clear();
+            Console.WriteLine("Choose a customer");
+            RenderCustomers();
+            Console.WriteLine();
+            Console.Write("0. Back");
+            Console.WriteLine();
+            Console.Write("-> ");
+
+            string? userInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > _customerManager.Customers.Count)
             {
                 Console.WriteLine();
                 Console.WriteLine("Invalid input");
@@ -202,7 +284,7 @@ internal sealed class BikeManager
             if (customer.Age < 15)
             {
                 Console.WriteLine();
-                Console.WriteLine("Customer too young.");
+                Console.WriteLine("Customer need to be 15 or older.");
                 Thread.Sleep(1000);
                 continue;
             }
@@ -232,6 +314,7 @@ internal sealed class BikeManager
                 }
 
                 _rentedBikes.Add(new RentedBike(customer.Id, bike.Id, BikeType.Bike, length));
+                bike.SetIsFree(false);
 
                 Console.WriteLine();
                 Console.WriteLine("Bike successfully rented out.");

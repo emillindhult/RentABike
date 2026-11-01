@@ -4,13 +4,13 @@ namespace RentABike.Managers;
 
 internal sealed class CustomerManager
 {
-    private readonly List<Customer> _customers;
+    private readonly List<Customer> _customers = [];
 
     public IReadOnlyList<Customer> Customers => _customers;
 
     public CustomerManager()
     {
-        _customers = [];
+        _customers = SeedData.SeedCostumers(_customers);
     }
 
     public void RegisterCustomer()

@@ -4,7 +4,7 @@ internal abstract class BaseBike
 {
     public Guid Id { get; }
     public decimal PricePerHour { get; }
-    public bool IsFree { get; }
+    public bool IsFree { get; private set; }
 
     public BaseBike(decimal pricePerHour, bool isFree)
     {
@@ -16,5 +16,10 @@ internal abstract class BaseBike
     public decimal CalculatePrice(int hours)
     {
         return PricePerHour * hours;
+    }
+
+    public void SetIsFree(bool isFree)
+    {
+        IsFree = isFree;
     }
 }
