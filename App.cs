@@ -33,6 +33,7 @@ internal sealed class App
             Console.WriteLine("3. Rent out");
             Console.WriteLine("4. Return");
             Console.WriteLine("5. Charge");
+            Console.WriteLine();
             Console.WriteLine("0. Exit");
             Console.WriteLine();
             Console.Write("-> ");
@@ -43,7 +44,7 @@ internal sealed class App
             {
                 Console.WriteLine();
                 Console.WriteLine("Invalid input...");
-                Thread.Sleep(1000);
+                Thread.Sleep(1000)  ;
             }
 
             switch (userInput)
@@ -77,7 +78,7 @@ internal sealed class App
 
     private void ReturnBike()
     {
-        throw new NotImplementedException();
+        _bikeManager.ReturnBike();
     }
 
     private void ListVehicles()

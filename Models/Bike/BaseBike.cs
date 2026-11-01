@@ -1,8 +1,8 @@
-﻿namespace RentABike.Models;
+﻿namespace RentABike.Models.Bike;
 
 internal abstract class BaseBike
 {
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
     public decimal PricePerHour { get; }
     public bool IsFree { get; }
 
@@ -15,6 +15,6 @@ internal abstract class BaseBike
 
     public decimal CalculatePrice(int hours)
     {
-        throw new NotImplementedException();
+        return PricePerHour * hours;
     }
 }

@@ -1,4 +1,4 @@
-﻿using RentABike.Models;
+﻿using RentABike.Models.Users;
 
 namespace RentABike.Managers;
 

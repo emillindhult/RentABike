@@ -1,4 +1,4 @@
-﻿using RentABike.Models;
+﻿using RentABike.Models.Bike;
 
 namespace RentABike.Managers;
 
@@ -8,7 +8,7 @@ internal sealed class BikeManager
 
     public BikeManager()
     {
-        _bikes = SeedData.Seed(_bikes);
+        _bikes = FileHandler.ReadItems();
     }
 
     public void ListBikes()
@@ -92,6 +92,7 @@ internal sealed class BikeManager
 
         while (true)
         {
+            Console.Clear();
             Console.WriteLine("Select a bike to rent out");
             RenderBikes();
             Console.WriteLine();
@@ -125,7 +126,25 @@ internal sealed class BikeManager
             var bike = _bikes[index - 1];
             var battery = bike is ElectricBike electricBike ? electricBike.Battery : -1;
 
+            if (battery < 0)
+            {
+                RentOrdinaryBike();
+            }
+
+            if (battery <= 25)
+            {
+                Console.WriteLine();
+                Console.WriteLine("The bike needs charging.");
+                Thread.Sleep(1000);
+                continue;
+            }
+
         }
+    }
+
+    private void RentOrdinaryBike()
+    {
+        throw new NotImplementedException();
     }
 
     public void ReturnBike()

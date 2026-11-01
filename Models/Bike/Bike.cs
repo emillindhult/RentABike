@@ -1,4 +1,4 @@
-﻿namespace RentABike.Models;
+﻿namespace RentABike.Models.Bike;
 
 internal sealed class Bike : BaseBike
 {
