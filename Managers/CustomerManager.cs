@@ -6,6 +6,8 @@ internal sealed class CustomerManager
 {
     private readonly List<Customer> _customers;
 
+    public IReadOnlyList<Customer> Customers => _customers;
+
     public CustomerManager()
     {
         _customers = [];

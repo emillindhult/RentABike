@@ -1,14 +1,18 @@
 ﻿using RentABike.Models.Bike;
+using RentABike.Models.Users;
 
 namespace RentABike.Managers;
 
 internal sealed class BikeManager
 {
     private readonly List<BaseBike> _bikes = [];
+    private readonly List<RentedBike> _rentedBikes = [];
+    private readonly CustomerManager _customerManager;
 
-    public BikeManager()
+    public BikeManager(CustomerManager customerManager)
     {
-        _bikes = FileHandler.ReadItems();
+        _bikes = SeedData.Seed(_bikes);
+        _customerManager = customerManager;
     }
 
     public void ListBikes()
@@ -128,7 +132,8 @@ internal sealed class BikeManager
 
             if (battery < 0)
             {
-                RentOrdinaryBike();
+                RentOrdinaryBike((Bike)bike);
+                continue;
             }
 
             if (battery <= 25)
@@ -139,12 +144,101 @@ internal sealed class BikeManager
                 continue;
             }
 
+            RentElectricBike();
+
         }
     }
 
-    private void RentOrdinaryBike()
+    private void RentElectricBike()
     {
         throw new NotImplementedException();
+    }
+
+    private void RentOrdinaryBike(Bike bike)
+    {
+        if (!bike.IsFree)
+        {
+            Console.WriteLine();
+            Console.WriteLine("The bike is not available.");
+            Thread.Sleep(1000);
+            return;
+        }
+
+        while (true)
+        {
+            Console.Clear();
+            Console.WriteLine("Choose a customer");
+            RenderCustomers();
+            Console.WriteLine();
+            Console.Write("0. Back");
+            Console.WriteLine();
+            Console.Write("-> ");
+
+            string? userInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            if (!int.TryParse(userInput, out int index))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            var customer = _customerManager.Customers[index - 1];
+
+            if (customer.Age < 15)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Customer too young.");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("How long to rent out");
+                Console.Write("-> ");
+
+                string? lengthInput = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(lengthInput))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Invalid input");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                if (!int.TryParse(lengthInput, out int length))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Invalid input");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                _rentedBikes.Add(new RentedBike(customer.Id, bike.Id, BikeType.Bike, length));
+
+                Console.WriteLine();
+                Console.WriteLine("Bike successfully rented out.");
+                Thread.Sleep(1000);
+                return;
+            }
+        }
     }
 
     public void ReturnBike()
@@ -159,6 +253,21 @@ internal sealed class BikeManager
 
     private void RenderCustomers()
     {
-        throw new NotImplementedException();
+        IReadOnlyList<Customer> customers = _customerManager.Customers;
+
+        Console.WriteLine(new string('-', 48));
+        Console.WriteLine("{0,-3} {1,-24} {2,-6} {3,-10}",
+            "No.", "Name", "Age", "Member");
+        Console.WriteLine(new string('-', 48));
+
+        for (int i = 0; i < customers.Count; i++)
+        {
+            Customer customer = customers[i];
+            Console.WriteLine("{0,-3} {1,-24} {2,-6} {3,-10}",
+                i + 1,
+                customer.Name,
+                customer.Age,
+                customer.IsMember ? "Yes" : "No");
+        }
     }
 }

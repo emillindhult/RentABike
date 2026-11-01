@@ -10,7 +10,7 @@ internal sealed class App
     public App()
     {
         _customerManager = new CustomerManager();
-        _bikeManager = new BikeManager();
+        _bikeManager = new BikeManager(_customerManager);
         Console.CursorVisible = true;
     }
 

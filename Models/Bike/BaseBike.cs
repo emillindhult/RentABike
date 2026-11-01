@@ -2,7 +2,7 @@
 
 internal abstract class BaseBike
 {
-    public Guid Id { get; private set; }
+    public Guid Id { get; }
     public decimal PricePerHour { get; }
     public bool IsFree { get; }
 
