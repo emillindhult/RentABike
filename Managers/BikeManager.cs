@@ -1,5 +1,6 @@
 ﻿using RentABike.Models.Bike;
 using RentABike.Models.Users;
+using System.Globalization;
 
 namespace RentABike.Managers;
 
@@ -90,15 +91,68 @@ internal sealed class BikeManager
         }
     }
 
+    private void RenderAvailableBikes()
+    {
+        Console.WriteLine(new string('-', 55));
+        Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
+            "No.", "Type", "Price/hour", "Status", "Battery");
+        Console.WriteLine(new string('-', 55));
+
+        var availableBikes = _bikes.Where(b => b.IsFree == true).ToList();
+
+        for (int i = 0; i < availableBikes.Count; i++)
+        {
+            BaseBike bike = availableBikes[i];
+            string type = bike is ElectricBike ? "Electric Bike" : "Bike";
+            string battery = bike is ElectricBike electricBike
+                ? $"{electricBike.Battery}%"
+                : "N/A";
+
+            Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
+                i + 1,
+                type,
+                bike.PricePerHour + ":-",
+                "Available",
+                battery);
+        }
+    }
+
+    private void RenderRentedBikes()
+    {
+        Console.WriteLine(new string('-', 55));
+        Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
+            "No.", "Type", "Price/hour", "Status", "Battery");
+        Console.WriteLine(new string('-', 55));
+
+        var availableBikes = _bikes.Where(b => b.IsFree == false).ToList();
+
+        for (int i = 0; i < availableBikes.Count; i++)
+        {
+            BaseBike bike = availableBikes[i];
+            string type = bike is ElectricBike ? "Electric Bike" : "Bike";
+            string battery = bike is ElectricBike electricBike
+                ? $"{electricBike.Battery}%"
+                : "N/A";
+
+            Console.WriteLine("{0,-3} {1,-14} {2,-12} {3,-12} {4,-10}",
+                i + 1,
+                type,
+                bike.PricePerHour + ":-",
+                "Rented",
+                battery);
+        }
+    }
+
     public void RentBike()
     {
         string? userInput;
+        List<BaseBike> availableBikes = _bikes.Where(b => b.IsFree).ToList();
 
         while (true)
         {
             Console.Clear();
             Console.WriteLine("Select a bike to rent out");
-            RenderBikes();
+            RenderAvailableBikes();
             Console.WriteLine();
             Console.WriteLine("0. Back");
             Console.WriteLine();
@@ -119,7 +173,7 @@ internal sealed class BikeManager
                 return;
             }
 
-            if (!int.TryParse(userInput, out int index) || index < 1 || index > _bikes.Count)
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > availableBikes.Count)
             {
                 Console.WriteLine();
                 Console.WriteLine("Invalid input");
@@ -127,7 +181,7 @@ internal sealed class BikeManager
                 continue;
             }
 
-            var bike = _bikes[index - 1];
+            var bike = availableBikes[index - 1];
 
             if (!bike.IsFree)
             {
@@ -225,7 +279,15 @@ internal sealed class BikeManager
                     continue;
                 }
 
-                if (length * 10 > bike.Battery)
+                if (length <= 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Rental length must be greater than zero.");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+
+                if (10L * length > bike.Battery)
                 {
                     Console.WriteLine();
                     Console.WriteLine("The bike needs to charge before renting out that long.");
@@ -326,12 +388,167 @@ internal sealed class BikeManager
 
     public void ReturnBike()
     {
-        throw new NotImplementedException();
+        string? userInput;
+        BaseBike? selectedBike = null;
+        RentedBike? selectedRental = null;
+        bool isMember = false;
+
+        while (true)
+        {
+            Console.Clear();
+            Console.WriteLine("Select a bike to return");
+            RenderRentedBikes();
+            List<BaseBike> rentedBikes = _bikes.Where(b => !b.IsFree).ToList();
+            Console.WriteLine();
+            Console.WriteLine("0. Back");
+            Console.WriteLine();
+            Console.Write("-> ");
+
+            userInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > rentedBikes.Count)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            BaseBike bike = rentedBikes[index - 1];
+            var rentedBike = _rentedBikes.SingleOrDefault(b => b.BikeId == bike.Id);
+
+            if (rentedBike is null)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Could not find bike.");
+                Thread.Sleep(1000);
+                return;
+            }
+
+            var customer = _customerManager.Customers.SingleOrDefault(c => c.Id == rentedBike.CustomerId);
+
+            if (customer is null)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Could not find customer.");
+                Thread.Sleep(1000);
+                return;
+            }
+
+            selectedBike = bike;
+            selectedRental = rentedBike;
+            isMember = customer.IsMember;
+            break;
+        }
+
+        if (selectedBike is null || selectedRental is null)
+        {
+            return;
+        }
+
+        decimal subtotal = selectedBike.CalculatePrice(selectedRental.Length);
+        decimal discount = isMember ? subtotal * 0.10m : 0m;
+        decimal total = subtotal - discount;
+        string bikeType = selectedBike is ElectricBike ? "Electric bike" : "Bike";
+        string duration = selectedRental.Length == 1 ? "1 hour" : $"{selectedRental.Length} hours";
+        string rentalDescription = $"{bikeType}, {duration} at {selectedBike.PricePerHour.ToString("0.##", CultureInfo.InvariantCulture)} kr";
+
+        if (selectedBike is ElectricBike electricBike)
+        {
+            electricBike.DrainBattery(selectedRental.Length);
+        }
+
+        selectedBike.SetIsFree(true);
+
+        Console.Clear();
+        Console.WriteLine("RECEIPT");
+        Console.WriteLine(new string('-', 58));
+        Console.WriteLine("{0,-42}{1,12} kr", rentalDescription, subtotal.ToString("F2", CultureInfo.InvariantCulture));
+
+        if (isMember)
+        {
+            Console.WriteLine("{0,-42}{1,12} kr", "Member discount (10%)", $"-{discount.ToString("F2", CultureInfo.InvariantCulture)}");
+        }
+
+        Console.WriteLine(new string('-', 58));
+        Console.WriteLine("{0,-42}{1,12} kr", "Total due", total.ToString("F2", CultureInfo.InvariantCulture));
+        Console.WriteLine();
+        Console.Write("Press any key to continue...");
+        Console.ReadKey(true);
     }
 
     public void ChargeBike()
     {
-        throw new NotImplementedException();
+        while (true)
+        {
+            List<ElectricBike> chargeableBikes = _bikes
+                .OfType<ElectricBike>()
+                .Where(bike => bike.IsFree && bike.Battery < ElectricBike.MaxBattery)
+                .ToList();
+
+            Console.Clear();
+            Console.WriteLine("Select an electric bike to charge");
+            Console.WriteLine(new string('-', 36));
+            Console.WriteLine("{0,-5} {1,-17} {2,-10}", "No.", "Type", "Battery");
+            Console.WriteLine(new string('-', 36));
+
+            for (int i = 0; i < chargeableBikes.Count; i++)
+            {
+                Console.WriteLine("{0,-5} {1,-17} {2,-10}",
+                    i + 1,
+                    "Electric bike",
+                    $"{chargeableBikes[i].Battery}%");
+            }
+
+            if (chargeableBikes.Count == 0)
+            {
+                Console.WriteLine("No available electric bikes need charging.");
+                Console.WriteLine();
+                Console.Write("Press any key to return...");
+                Console.ReadKey(true);
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("0. Back");
+            Console.WriteLine();
+            Console.Write("-> ");
+
+            string? userInput = Console.ReadLine();
+
+            if (userInput == "0")
+            {
+                return;
+            }
+
+            if (!int.TryParse(userInput, out int index) || index < 1 || index > chargeableBikes.Count)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Invalid input");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            ElectricBike selectedBike = chargeableBikes[index - 1];
+            selectedBike.ChargeBattery();
+
+            Console.WriteLine();
+            Console.WriteLine($"Bike charged successfully. Battery is now {selectedBike.Battery}%.");
+            Thread.Sleep(1000);
+        }
     }
 
     private void RenderCustomers()

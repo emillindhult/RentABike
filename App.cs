@@ -30,9 +30,9 @@ internal sealed class App
             Console.WriteLine("---------------------");
             Console.WriteLine("1. List vehicles");
             Console.WriteLine("2. Register customer");
-            Console.WriteLine("3. Rent out");
-            Console.WriteLine("4. Return");
-            Console.WriteLine("5. Charge");
+            Console.WriteLine("3. Rent bike");
+            Console.WriteLine("4. Return bike");
+            Console.WriteLine("5. Charge bike");
             Console.WriteLine();
             Console.WriteLine("0. Exit");
             Console.WriteLine();
@@ -73,7 +73,7 @@ internal sealed class App
 
     private void ChargeBike()
     {
-        throw new NotImplementedException();
+        _bikeManager.ChargeBike();
     }
 
     private void ReturnBike()
