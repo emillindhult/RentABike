@@ -1,4 +1,5 @@
-﻿using RentABike.Models.Bike;
+﻿using System.Collections.Concurrent;
+using RentABike.Models.Bike;
 using RentABike.Models.Users;
 using System.Globalization;
 
@@ -8,6 +9,7 @@ internal sealed class BikeManager
 {
     private readonly List<BaseBike> _bikes = [];
     private readonly List<RentedBike> _rentedBikes = [];
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _chargingBikeIds = new();
     private readonly CustomerManager _customerManager;
 
     public BikeManager(CustomerManager customerManager)
@@ -86,7 +88,9 @@ internal sealed class BikeManager
                 i + 1,
                 type,
                 bike.PricePerHour + ":-",
-                bike.IsFree ? "Available" : "Rented",
+                _chargingBikeIds.ContainsKey(bike.Id)
+                    ? "Charging"
+                    : bike.IsFree ? "Available" : "Rented",
                 battery);
         }
     }
@@ -98,7 +102,9 @@ internal sealed class BikeManager
             "No.", "Type", "Price/hour", "Status", "Battery");
         Console.WriteLine(new string('-', 55));
 
-        var availableBikes = _bikes.Where(b => b.IsFree == true).ToList();
+        var availableBikes = _bikes
+            .Where(bike => bike.IsFree && !_chargingBikeIds.ContainsKey(bike.Id))
+            .ToList();
 
         for (int i = 0; i < availableBikes.Count; i++)
         {
@@ -146,7 +152,9 @@ internal sealed class BikeManager
     public void RentBike()
     {
         string? userInput;
-        List<BaseBike> availableBikes = _bikes.Where(b => b.IsFree).ToList();
+        List<BaseBike> availableBikes = _bikes
+            .Where(bike => bike.IsFree && !_chargingBikeIds.ContainsKey(bike.Id))
+            .ToList();
 
         while (true)
         {
@@ -183,7 +191,7 @@ internal sealed class BikeManager
 
             var bike = availableBikes[index - 1];
 
-            if (!bike.IsFree)
+            if (!bike.IsFree || _chargingBikeIds.ContainsKey(bike.Id))
             {
                 Console.WriteLine();
                 Console.WriteLine("The bike is not available.");
@@ -500,17 +508,23 @@ internal sealed class BikeManager
                 .ToList();
 
             Console.Clear();
-            Console.WriteLine("Select an electric bike to charge");
-            Console.WriteLine(new string('-', 36));
-            Console.WriteLine("{0,-5} {1,-17} {2,-10}", "No.", "Type", "Battery");
-            Console.WriteLine(new string('-', 36));
+            Console.WriteLine("Select an electric bike to charge or cancel charging");
+            Console.WriteLine(new string('-', 50));
+            Console.WriteLine("{0,-5} {1,-17} {2,-10} {3,-12}", "No.", "Type", "Battery", "Status");
+            Console.WriteLine(new string('-', 50));
 
             for (int i = 0; i < chargeableBikes.Count; i++)
             {
-                Console.WriteLine("{0,-5} {1,-17} {2,-10}",
+                ElectricBike bike = chargeableBikes[i];
+                string status = _chargingBikeIds.TryGetValue(bike.Id, out CancellationTokenSource? chargeStatusTokenSource)
+                    ? chargeStatusTokenSource.IsCancellationRequested ? "Cancelling" : "Charging"
+                    : "Not charging";
+
+                Console.WriteLine("{0,-5} {1,-17} {2,-10} {3,-12}",
                     i + 1,
                     "Electric bike",
-                    $"{chargeableBikes[i].Battery}%");
+                    $"{bike.Battery}%",
+                    status);
             }
 
             if (chargeableBikes.Count == 0)
@@ -543,11 +557,49 @@ internal sealed class BikeManager
             }
 
             ElectricBike selectedBike = chargeableBikes[index - 1];
-            selectedBike.ChargeBattery();
+            if (_chargingBikeIds.TryGetValue(selectedBike.Id, out CancellationTokenSource? activeCancellation))
+            {
+                activeCancellation.Cancel();
+                Console.WriteLine();
+                Console.WriteLine("Charging cancellation requested.");
+                Thread.Sleep(1000);
+                return;
+            }
+
+            var cancellationTokenSource = new CancellationTokenSource();
+            if (!_chargingBikeIds.TryAdd(selectedBike.Id, cancellationTokenSource))
+            {
+                cancellationTokenSource.Dispose();
+                continue;
+            }
 
             Console.WriteLine();
-            Console.WriteLine($"Bike charged successfully. Battery is now {selectedBike.Battery}%.");
-            Thread.Sleep(1000);
+            Console.WriteLine("Charging started. The bike gains 1% battery every 10 seconds.");
+            _ = ChargeBikeInBackground(selectedBike, cancellationTokenSource);
+            return;
+        }
+    }
+
+    private async Task ChargeBikeInBackground(ElectricBike bike, CancellationTokenSource cancellationTokenSource)
+    {
+        try
+        {
+            while (bike.Battery < ElectricBike.MaxBattery)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationTokenSource.Token);
+
+                if (bike.ChargeBatteryByOne())
+                {
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _chargingBikeIds.TryRemove(bike.Id, out _);
         }
     }
 
